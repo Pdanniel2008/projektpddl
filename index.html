@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iBox - Iskolai Ötletdoboz</title>
+    <link rel="stylesheet" href="projekt.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="school-badge">
+                <img src="gepesz_alap_5d3a12540c.png" style="height: 100px;">
+            </div>
+            <h1>iBOX</h1>
+            <p class="subtitle">Láttál problémát? Van megoldási ötleted? Oszd meg velünk!</p>
+            <div class="motto">"Ne csak panaszkodj, tegyél is érte!"</div>
+        </header>
+
+        <div class="idea-box">
+            <div class="input-section">
+                <div class="input-header">
+                    <h2>📮 Új ötlet beküldése</h2>
+                    <span class="badge">Diákok és Tanárok</span>
+                </div>
+                
+                <form id="ideaForm">
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="category">
+                                <span class="label-icon">📌</span>
+                                Kategória
+                            </label>
+                            <select id="category" required>
+                                <option value="" disabled selected>-- Válassz kategóriát --</option>
+                                <option value="oktatas">📚 Oktatás & Tanulás</option>
+                                <option value="kornyezet">🏫 Iskolai környezet</option>
+                                <option value="programok">🎪 Programok & Rendezvények</option>
+                                <option value="felszereltseg">🖥️ Felszereltség & Eszközök</option>
+                                <option value="kozosseg">👥 Közösség & Diákélet</option>
+                                <option value="biztonsag">🛡️ Biztonság & Egészség</option>
+                                <option value="egyeb">💡 Egyéb</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="problem">
+                                <span class="label-icon">⚠️</span>
+                                Probléma / Kihívás
+                            </label>
+                            <textarea 
+                                id="problem" 
+                                placeholder="Milyen problémát, nehézséget vagy kihívást tapasztaltál az iskolában? Írd le részletesen..."
+                                rows="3"
+                                required
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="solution">
+                                <span class="label-icon">💡</span>
+                                Ötlet / Megoldási javaslat
+                            </label>
+                            <textarea 
+                                id="solution" 
+                                placeholder="Mi lenne a megoldás? Hogyan lehetne javítani a helyzeten? Írd le az ötleted..."
+                                rows="3"
+                                required
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="email">
+                                <span class="label-icon">📧</span>
+                                Email cím (visszajelzéshez)
+                            </label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                placeholder="pelda@iskola.hu"
+                                required
+                            >
+                            <span class="field-hint">Az ötleted állapotáról emailben értesítünk</span>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" id="addIdeaBtn" class="btn-primary">
+                            <span class="plus-icon">+</span> 
+                            Ötlet beküldése
+                        </button>
+                        <button type="button" id="resetBtn" class="btn-secondary">
+                            Űrlap törlése
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">🔍 Minden bejegyzés</button>
+                    <button class="filter-btn" data-filter="oktatas">📚 Oktatás</button>
+                    <button class="filter-btn" data-filter="kornyezet">🏫 Környezet</button>
+                    <button class="filter-btn" data-filter="programok">🎪 Programok</button>
+                    <button class="filter-btn" data-filter="felszereltseg">🖥️ Eszközök</button>
+                    <button class="filter-btn" data-filter="kozosseg">👥 Közösség</button>
+                    <button class="filter-btn" data-filter="biztonsag">🛡️ Biztonság</button>
+                    <button class="filter-btn" data-filter="egyeb">💡 Egyéb</button>
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">📊 Beküldött ötletek:</span>
+                        <span class="stat-number" id="totalIdeas">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">✅ Megvalósítva:</span>
+                        <span class="stat-number" id="completedIdeas">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ideas-grid" id="ideasGrid">
+                <div class="loading">🔄 Betöltés...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const JSONBIN_BIN_ID = "69c2724bb7ec241ddc9a9281";
+        const JSONBIN_API_KEY = "$2a$10$JJV.kyXDgaa7reHh0rG09Oob5GucA5z4vbpGsQ8a9OFKMKSJud0Hq";
+        
+       
+        const USE_MOCK_DATA = false;
+        
+        let allIdeas = [];
+        let currentFilter = 'all';
+        
+
+        const sampleIdeas = [
+            {
+                id: 1,
+                created_at: new Date().toISOString(),
+                category: "oktatas",
+                problem: "A digitális tábla a 203-as teremben nem működik megfelelően, gyakran lefagy.",
+                solution: "Javaslom a szoftver frissítését és a karbantartó szakember értesítését.",
+                email: "tanar@iskola.hu",
+                completed: false
+            },
+            {
+                id: 2,
+                created_at: new Date(Date.now() - 86400000).toISOString(),
+                category: "kornyezet",
+                problem: "A büfé előtt gyakran felgyűlik a szemét, nincs elég kuka.",
+                solution: "Több szemetes elhelyezése és a diákok környezettudatosságra nevelése.",
+                email: "diak@iskola.hu",
+                completed: true
+            }
+        ];
+
+
+        async function loadFromAPI() {
+            if (USE_MOCK_DATA) {
+                console.log("Mock adatok használata (offline mód)");
+                return sampleIdeas;
+            }
+            
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                    headers: {
+                        'X-Master-Key': JSONBIN_API_KEY
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Hiba az adatok betöltésekor');
+                const data = await response.json();
+                return data.record.ideas || [];
+            } catch (error) {
+                console.error('API hiba:', error);
+                alert('Hiba történt az adatok betöltésekor. Offline módban dolgozunk.');
+                return sampleIdeas;
+            }
+        }
+        
+        async function saveToAPI(ideas) {
+            if (USE_MOCK_DATA) {
+                console.log("Mock mentés (offline mód)");
+                return true;
+            }
+            
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify({ ideas: ideas })
+                });
+                
+                if (!response.ok) throw new Error('Hiba a mentéskor');
+                return true;
+            } catch (error) {
+                console.error('API mentési hiba:', error);
+                alert('Hiba történt a mentés során. Változtatások csak helyben tárolódnak.');
+                return false;
+            }
+        }
+        
+        async function loadIdeas() {
+            try {
+                const loadedIdeas = await loadFromAPI();
+                allIdeas = loadedIdeas;
+                allIdeas.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                
+                const filteredIdeas = getFilteredIdeas();
+                renderIdeas(filteredIdeas);
+                updateStats(filteredIdeas);
+            } catch (error) {
+                console.error('Hiba a betöltéskor:', error);
+                ideasGrid.innerHTML = '<div class="empty-state">❌ Hiba történt az adatok betöltésekor</div>';
+            }
+        }
+        
+        function getFilteredIdeas() {
+            if (currentFilter === 'all') {
+                return allIdeas;
+            }
+            return allIdeas.filter(idea => idea.category === currentFilter);
+        }
+        
+        function updateStats(filteredIdeas) {
+            totalIdeasSpan.textContent = filteredIdeas.length;
+            const completedCount = filteredIdeas.filter(idea => idea.completed).length;
+            completedIdeasSpan.textContent = completedCount;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        async function toggleComplete(id) {
+            const index = allIdeas.findIndex(i => i.id === id);
+            if (index !== -1) {
+                allIdeas[index].completed = !allIdeas[index].completed;
+                await saveToAPI(allIdeas);
+                
+                const filteredIdeas = getFilteredIdeas();
+                renderIdeas(filteredIdeas);
+                updateStats(filteredIdeas);
+            }
+        }
+        
+        async function deleteIdea(id) {
+            if (!confirm('Biztosan törlöd ezt az ötletet?')) return;
+            
+            allIdeas = allIdeas.filter(i => i.id !== id);
+            await saveToAPI(allIdeas);
+            
+            const filteredIdeas = getFilteredIdeas();
+            renderIdeas(filteredIdeas);
+            updateStats(filteredIdeas);
+            alert('Ötlet sikeresen törölve');
+        }
+        
+        function renderIdea(idea) {
+            const categoryNames = {
+                'oktatas': '📚 Oktatás',
+                'kornyezet': '🏫 Környezet',
+                'programok': '🎪 Programok',
+                'felszereltseg': '🖥️ Eszközök',
+                'kozosseg': '👥 Közösség',
+                'biztonsag': '🛡️ Biztonság',
+                'egyeb': '💡 Egyéb'
+            };
+            
+            const card = document.createElement('div');
+            card.className = `idea-card ${idea.completed ? 'completed' : ''}`;
+            card.dataset.id = idea.id;
+            
+            const date = new Date(idea.created_at).toLocaleDateString('hu-HU', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            card.innerHTML = `
+                <div class="idea-header">
+                    <span class="category-badge">${categoryNames[idea.category] || idea.category}</span>
+                    <span class="email-badge">✉️ ${escapeHtml(idea.email)}</span>
+                </div>
+                <div class="problem-section">
+                    <div class="problem-label"><span>⚠️ PROBLÉMA</span></div>
+                    <div class="problem-text">${escapeHtml(idea.problem)}</div>
+                </div>
+                <div class="solution-section">
+                    <div class="solution-label"><span>💡 MEGOLDÁS</span></div>
+                    <div class="solution-text">${escapeHtml(idea.solution)}</div>
+                </div>
+                <div class="idea-footer">
+                    <div class="idea-date">📅 ${date}</div>
+                    <div class="idea-actions">
+                        <button class="complete-btn" data-id="${idea.id}" title="Megvalósítva">
+                            ${idea.completed ? '✅' : '◻️'}
+                        </button>
+                        <button class="delete-btn" data-id="${idea.id}" title="Törlés">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const completeBtn = card.querySelector('.complete-btn');
+            const deleteBtn = card.querySelector('.delete-btn');
+            
+            completeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleComplete(idea.id);
+            });
+            
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteIdea(idea.id);
+            });
+            
+            return card;
+        }
+        
+        function renderIdeas(ideasToRender) {
+            ideasGrid.innerHTML = '';
+            if (ideasToRender.length === 0) {
+                ideasGrid.innerHTML = '<div class="empty-state">📭 Még nincsenek ötletek. Légy az első!</div>';
+            } else {
+                ideasToRender.forEach(idea => {
+                    ideasGrid.appendChild(renderIdea(idea));
+                });
+            }
+        }
+        
+        async function addIdea(e) {
+            e.preventDefault();
+            
+            const category = document.getElementById('category').value;
+            const problem = document.getElementById('problem').value.trim();
+            const solution = document.getElementById('solution').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            if (!category || !problem || !solution || !email) {
+                alert('Kérlek tölts ki minden mezőt!');
+                return;
+            }
+            
+            const newId = Math.max(...allIdeas.map(i => i.id), 0) + 1;
+            const newIdea = {
+                id: newId,
+                created_at: new Date().toISOString(),
+                category,
+                problem,
+                solution,
+                email,
+                completed: false
+            };
+            
+            allIdeas.unshift(newIdea);
+            const saveSuccess = await saveToAPI(allIdeas);
+            
+            if (saveSuccess || USE_MOCK_DATA) {
+                alert('Ötlet sikeresen beküldve!');
+                document.getElementById('ideaForm').reset();
+                document.getElementById('category').value = '';
+                
+                const filteredIdeas = getFilteredIdeas();
+                renderIdeas(filteredIdeas);
+                updateStats(filteredIdeas);
+            }
+        }
+        
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            filterButtons.forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            const filteredIdeas = getFilteredIdeas();
+            renderIdeas(filteredIdeas);
+            updateStats(filteredIdeas);
+        }
+        
+        function resetForm() {
+            document.getElementById('ideaForm').reset();
+            document.getElementById('category').value = '';
+        }
+        
+
+        const ideasGrid = document.getElementById('ideasGrid');
+        const totalIdeasSpan = document.getElementById('totalIdeas');
+        const completedIdeasSpan = document.getElementById('completedIdeas');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const resetBtn = document.getElementById('resetBtn');
+        
+
+        document.getElementById('ideaForm').addEventListener('submit', addIdea);
+        resetBtn.addEventListener('click', resetForm);
+        
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+        });
+        
+
+        loadIdeas();
+    </script>
+</body>
+</html>
