@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iskolai Ötletdoboz - Problémamegoldás</title>
+    <link rel="stylesheet" href="projekt.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="school-badge">
+                <img src="gepesz_alap_5d3a12540c.png" alt="Iskola logó" class="badge-icon">
+            </div>
+            <h1>iBox</h1>
+            <p class="subtitle">Láttál problémát? Van megoldási ötleted? Oszd meg velünk!</p>
+            <div class="motto">"Ne csak panaszkodj, tegyél is érte!"</div>
+        </header>
+
+        <div class="idea-box">
+            
+            <div class="input-section">
+                <div class="input-header">
+                    <h2>📮 Új ötlet beküldése</h2>
+                    <span class="badge">Diákok és Tanárok</span>
+                </div>
+                
+                <form id="ideaForm">
+                    
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="category">
+                                <span class="label-icon">📌</span>
+                                Kategória
+                            </label>
+                            <select id="category" required>
+                                <option value="" disabled selected>-- Válassz kategóriát --</option>
+                                <option value="oktatas">📚 Oktatás & Tanulás</option>
+                                <option value="kornyezet">🏫 Iskolai környezet</option>
+                                <option value="programok">🎪 Programok & Rendezvények</option>
+                                <option value="felszereltseg">🖥️ Felszereltség & Eszközök</option>
+                                <option value="kozosseg">👥 Közösség & Diákélet</option>
+                                <option value="biztonsag">🛡️ Biztonság & Egészség</option>
+                                <option value="egyeb">💡 Egyéb</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="problem">
+                                <span class="label-icon">⚠️</span>
+                                Probléma / Kihívás
+                            </label>
+                            <textarea 
+                                id="problem" 
+                                placeholder="Milyen problémát, nehézséget vagy kihívást tapasztaltál az iskolában? Írd le részletesen..."
+                                rows="3"
+                                required
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="solution">
+                                <span class="label-icon">💡</span>
+                                Ötlet / Megoldási javaslat
+                            </label>
+                            <textarea 
+                                id="solution" 
+                                placeholder="Mi lenne a megoldás? Hogyan lehetne javítani a helyzeten? Írd le az ötleted..."
+                                rows="3"
+                                required
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="email">
+                                <span class="label-icon">📧</span>
+                                Email cím (visszajelzéshez)
+                            </label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                placeholder="pelda@iskola.hu"
+                                required
+                            >
+                            <span class="field-hint">Az ötleted állapotáról emailben értesítünk</span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="form-actions">
+                        <button type="submit" id="addIdeaBtn" class="btn-primary">
+                            <span class="plus-icon">+</span> 
+                            Ötlet beküldése
+                        </button>
+                        <button type="reset" class="btn-secondary">
+                            Űrlap törlése
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            
+            <div class="filter-section">
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">🔍 Minden bejegyzés</button>
+                    <button class="filter-btn" data-filter="oktatas">📚 Oktatás</button>
+                    <button class="filter-btn" data-filter="kornyezet">🏫 Környezet</button>
+                    <button class="filter-btn" data-filter="programok">🎪 Programok</button>
+                    <button class="filter-btn" data-filter="felszereltseg">🖥️ Eszközök</button>
+                    <button class="filter-btn" data-filter="kozosseg">👥 Közösség</button>
+                    <button class="filter-btn" data-filter="biztonsag">🛡️ Biztonság</button>
+                    <button class="filter-btn" data-filter="egyeb">💡 Egyéb</button>
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">📊 Beküldött ötletek:</span>
+                        <span class="stat-number" id="totalIdeas">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">✅ Megvalósítva:</span>
+                        <span class="stat-number" id="completedIdeas">0</span>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="ideas-grid" id="ideasGrid">
+            </div>
+        </div>
+    </div>
+<script>
+    let ideas = [];
+let currentFilter = 'all';
+
+const ideasGrid = document.getElementById('ideasGrid');
+const totalIdeasSpan = document.getElementById('totalIdeas');
+const completedIdeasSpan = document.getElementById('completedIdeas');
+const filterButtons = document.querySelectorAll('.filter-btn');
+
+async function loadIdeas() {
+    const url = currentFilter === 'all' 
+        ? 'api.php' 
+        : `api.php?filter=${currentFilter}`;
+    const res = await fetch(url);
+    ideas = await res.json();
+    renderIdeas();
+}
+
+function updateStats() {
+    totalIdeasSpan.textContent = ideas.length;
+    const completedCount = ideas.filter(idea => idea.completed).length;
+    completedIdeasSpan.textContent = completedCount;
+}
+
+function renderIdea(idea) {
+    const categoryNames = {
+        'oktatas': '📚 Oktatás',
+        'kornyezet': '🏫 Környezet',
+        'programok': '🎪 Programok',
+        'felszereltseg': '🖥️ Eszközök',
+        'kozosseg': '👥 Közösség',
+        'biztonsag': '🛡️ Biztonság',
+        'egyeb': '💡 Egyéb'
+    };
+
+    const card = document.createElement('div');
+    card.className = `idea-card ${idea.completed ? 'completed' : ''}`;
+    card.dataset.id = idea.id;
+    card.dataset.category = idea.category;
+
+    const date = new Date(idea.created_at).toLocaleDateString('hu-HU', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    card.innerHTML = `
+        <div class="idea-header">
+            <span class="category-badge">${categoryNames[idea.category]}</span>
+            <span class="email-badge">✉️ ${idea.email}</span>
+        </div>
+        <div class="problem-section">
+            <div class="problem-label"><span>⚠️ PROBLÉMA</span></div>
+            <div class="problem-text">${idea.problem}</div>
+        </div>
+        <div class="solution-section">
+            <div class="solution-label"><span>💡 MEGOLDÁS</span></div>
+            <div class="solution-text">${idea.solution}</div>
+        </div>
+        <div class="idea-footer">
+            <div class="idea-date">📅 ${date}</div>
+            <div class="idea-actions">
+                <button class="complete-btn" onclick="toggleComplete(${idea.id})" title="Megvalósítva">
+                    ${idea.completed ? '✅' : '◻️'}
+                </button>
+                <button class="delete-btn" onclick="deleteIdea(${idea.id})" title="Törlés">
+                    🗑️
+                </button>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+function renderIdeas() {
+    ideasGrid.innerHTML = '';
+    if (ideas.length === 0) {
+        ideasGrid.innerHTML = `<div class="empty-state">📭 Még nincsenek ötletek.</div>`;
+    } else {
+        ideas.forEach(idea => ideasGrid.appendChild(renderIdea(idea)));
+    }
+    updateStats();
+}
+
+async function addIdea(e) {
+    e.preventDefault();
+    const category = document.getElementById('category').value;
+    const problem = document.getElementById('problem').value.trim();
+    const solution = document.getElementById('solution').value.trim();
+    const email = document.getElementById('email').value.trim();
+
+    if (!category || !problem || !solution || !email) {
+        alert('Kérlek tölts ki minden mezőt!');
+        return;
+    }
+
+    const res = await fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, problem, solution, email })
+    });
+    if (res.ok) {
+        loadIdeas();
+        document.getElementById('ideaForm').reset();
+        document.getElementById('category').value = '';
+    } else {
+        alert('Hiba történt mentés közben');
+    }
+}
+
+window.toggleComplete = async function(id) {
+    const idea = ideas.find(i => i.id === id);
+    if (!idea) return;
+    await fetch('api.php', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: !idea.completed })
+    });
+    loadIdeas();
+};
+
+window.deleteIdea = async function(id) {
+    if (confirm('Biztosan törlöd?')) {
+        await fetch(`api.php?id=${id}`, { method: 'DELETE' });
+        loadIdeas();
+    }
+};
+
+function setFilter(filter) {
+    currentFilter = filter;
+    filterButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    loadIdeas();
+}
+
+document.getElementById('ideaForm').addEventListener('submit', addIdea);
+filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+});
+document.querySelector('.btn-secondary').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('ideaForm').reset();
+    document.getElementById('category').value = '';
+});
+
+loadIdeas();
+</script>
+</body>
+</html>
